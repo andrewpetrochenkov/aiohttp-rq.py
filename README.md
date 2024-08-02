@@ -14,20 +14,31 @@ Variable|default
 optional
 Variable|default
 -|-
-`AIOHTTP_RQ_DIR`|`None`
-`AIOHTTP_RQ_REDIS_HOST`|`localhost`
-`AIOHTTP_RQ_REDIS_PORT`|`6379`
-`AIOHTTP_RQ_REDIS_DB`|`0`
+`AIOHTTP_RQ_LOG_CONFIG_FILE`|`None`
+`AIOHTTP_RQ_TTL_DNS_CACHE`|`10`
+`REDIS_HOST`|`localhost`
+`REDIS_PORT`|`6379`
+`REDIS_DB`|`0`
+
+### Features
++   logging
+    +   `DEBUG`, `ERROR` level messages
+    +   `logging.conf` support: `AIOHTTP_RQ_LOG_CONFIG_FILE`
++   request data: `method`,`url`, `headers`, `data`,`allow_redirects`, custom arguments
++   response data: `url`, `status`, `headers`,`content_path`, `request_xxx` arguments
++   request exception data: `url`, `exc_class`, `exc_message`, `request_xxx` arguments
 
 ### Examples
 ```bash
 $ export AIOHTTP_RQ_REQUEST_QUEUE="aiohttp-rq-request"
 $ export AIOHTTP_RQ_RESPONSE_QUEUE="aiohttp-rq-response"
 $ export AIOHTTP_RQ_EXCEPTION_QUEUE="aiohttp-rq-exception"
-$ python3 -m aiohttp_rq 100 # 100 workers
+$ export AIOHTTP_RQ_TTL_DNS_CACHE=3600 # optional
+$ python3 -m aiohttp_rq 50 # 50 workers
+
 ```
 
-### Redis
+redis client
 ```python
 import redis
 
