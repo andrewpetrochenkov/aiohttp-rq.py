@@ -23,10 +23,10 @@ Variable|default
 ### Features
 +   logging
     +   `DEBUG`, `ERROR` level messages
-    +   `logging.conf` support: `AIOHTTP_RQ_LOG_CONFIG_FILE`
-+   request data: `method`,`url`, `headers`, `data`,`allow_redirects`, custom arguments
-+   response data: `url`, `status`, `headers`,`content_path`, `request_xxx` arguments
-+   request exception data: `url`, `exc_class`, `exc_message`, `request_xxx` arguments
+    +   `logging.conf` support
++   request: `method`,`url`, `headers`, `data`,`allow_redirects`, custom arguments
++   response: `url`, `status`, `headers`,`content_path`, `request_xxx` arguments
++   request exception: `url`, `exc_class`, `exc_message`, `request_xxx` arguments
 
 ### Examples
 ```bash
@@ -62,11 +62,9 @@ REDIS.rpush('aiohttp-rq-request',*values)
 
 ```python
 item_list = REDIS.lrange('aiohttp-rq-response',0,-1)
-for item in item_list:
-    data = json.loads(item.encode('utf-8'))
+data_list = list(map(lambda i:i.encode('utf-8'),item_list))
 
 item_list = REDIS.lrange('aiohttp-rq-exception',0,-1)
-for item in item_list:
-    data = json.loads(item.encode('utf-8'))
+data_list = list(map(lambda i:i.encode('utf-8'),item_list))
 ```
 

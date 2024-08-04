@@ -12,9 +12,8 @@ import redis
 
 from .utils import get_client_session_kwargs, get_content_path, write_content
 
-LOG_CONFIG_FILE = os.getenv('AIOHTTP_RQ_LOG_CONFIG_FILE','')
-if LOG_CONFIG_FILE:
-    logging.config.fileConfig(LOG_CONFIG_FILE)
+if os.path.exists('logging.conf'):
+    logging.config.fileConfig('logging.conf')
 
 REDIS_PREFETCH_COUNT = 100
 ASYNCIO_REQUEST_QUEUE = asyncio.Queue()
