@@ -10,15 +10,17 @@ import aiohttp
 import click
 import redis
 
-from .utils import get_client_session_kwargs, get_content_path, write_content
+from .utils import get_client_session_kwargs, write_content
 
 if os.path.exists('logging.conf'):
     logging.config.fileConfig('logging.conf')
 
+AIOHTTP_RQ_DIR = os.environ['AIOHTTP_RQ_DIR']
+
 REDIS_PREFETCH_COUNT = 100
 ASYNCIO_REQUEST_QUEUE = asyncio.Queue()
 # https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.request
-REQUEST_KEYS = ['method','url','params','data','json','headers','cookies','allow_redirects','compress','chunked','expect100',]
+REQUEST_KEYS = ['method','url','params','data','json','headers','cookies','allow_redirects','proxy','compress','chunked','expect100',]
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = os.getenv("REDIS_PORT", 6379)
@@ -53,6 +55,7 @@ async def request_worker(session):
         try:
             data = await ASYNCIO_REQUEST_QUEUE.get()
             url, method = data['url'], data['method']
+            request_id, filename = data.get('request_id',''), data.get('filename','')
             kwargs = {k:data[k] for k in data.keys() if k in REQUEST_KEYS}
             if isinstance(kwargs.get('data',None),dict):
                 kwargs['data'] = json.dumps(kwargs['data'])
@@ -62,28 +65,26 @@ async def request_worker(session):
             sys.exit(1)
         try:
             async with session.request(**kwargs) as r:
-                logging.debug('STATUS %s %s' % (url,r.status))
+                logging.debug('STATUS %s \n%s %s' % (url,r.status,r.status))
                 content_path = None
                 if method.upper()!='HEAD' and r.status not in [404]:
-                    content_path = get_content_path()
+                    content_path = os.path.join(AIOHTTP_RQ_DIR,filename)
                     logging.debug('WRITE %s -> %s' % (url,content_path))
                     await write_content(r,content_path)
                 queue = RESPONSE_QUEUE_NAME
-                push_data = dict(
+                push_data = data | dict(
+                    request_id=request_id,
                     url=str(r.url),
                     status=int(r.status),
-                    headers = dict(r.headers),
-                    content_path=content_path,
-                    **{'request_%s' % k:v for k,v in data.items()}
+                    headers = dict(r.headers)
                 )
         except Exception as e: # session.request() exception
             logging.debug('%s %s: %s' % (url,type(e),str(e)))
             queue = REQUEST_EXCEPTION_QUEUE_NAME
-            push_data = dict(
-                url=url,
+            push_data = data | dict(
+                request_id=request_id,
                 exc_class="%s.%s" % (type(e).__module__, type(e).__name__),
-                exc_message=str(e),
-                **{'request_%s' % k:v for k,v in data.items()}
+                exc_message=str(e)
             )
         try:
             logging.debug('REDIS PUSH: %s' % queue)
